@@ -1329,7 +1329,8 @@ Experimental options that should not to be used in products.
 	  userauth_banner_sent = false,
           %% Keep-alive
           alive_last_sent_at = 0              :: non_neg_integer(),
-          alive_probes_sent = 0               :: non_neg_integer()
+          alive_probes_sent = 0               :: non_neg_integer(),
+	  last_userauth_tried = "none" %% Not used for server role
 	 }).
 
 -record(alg,
