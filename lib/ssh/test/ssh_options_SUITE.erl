@@ -91,7 +91,10 @@
          daemon_replace_options_algs/1,
          daemon_replace_options_algs_connect/1,
          daemon_replace_options_algs_conf_file/1,
-         daemon_replace_options_not_found/1
+         daemon_replace_options_not_found/1,
+         max_auth_tries_option/1,
+         max_auth_tries_exceeded/1,
+         max_auth_tries_default/1
 	]).
 
 %%% Common test callbacks
@@ -164,7 +167,8 @@ all() ->
      daemon_replace_options_algs_connect,
      daemon_replace_options_algs_conf_file,
      daemon_replace_options_not_found,
-     {group, hardening_tests}
+     {group, hardening_tests},
+     {group, max_auth_tries}
     ].
 
 groups() ->
@@ -180,7 +184,10 @@ groups() ->
 			   ]},
      {dir_options, [], [user_dir_option,
                         user_dir_fun_option,
-			system_dir_option]}
+			system_dir_option]},
+     {max_auth_tries, [], [max_auth_tries_option,
+                           max_auth_tries_exceeded,
+                           max_auth_tries_default]}
     ].
 
 
@@ -2086,6 +2093,31 @@ daemon_replace_options_not_found(_Config) ->
     %% which is {error, bad_daemon_ref}
     Error = ssh:daemon_info(self()),
     Error = ssh:daemon_replace_options(self(), []).
+
+%%--------------------------------------------------------------------
+max_auth_tries_option(Config) ->
+    %% Valid values accepted
+    #{max_auth_tries := 3} = ssh_options:handle_options(server, [{max_auth_tries, 3}]),
+    #{max_auth_tries := 1} = ssh_options:handle_options(server, [{max_auth_tries, 1}]),
+    %% Default value is 6
+    #{max_auth_tries := 6} = ssh_options:handle_options(server, []),
+    %% Bad values rejected
+    {error, {eoptions, _}} = ssh_options:handle_options(server, [{max_auth_tries, 0}]),
+    {error, {eoptions, _}} = ssh_options:handle_options(server, [{max_auth_tries, -1}]),
+    {error, {eoptions, _}} = ssh_options:handle_options(server, [{max_auth_tries, foo}]).
+
+%%--------------------------------------------------------------------
+max_auth_tries_exceeded(Config) ->
+    %% TODO: This test probably needs to use the ssh_trpt_test_lib to perform
+    %% multiple authentication in the same connection and trigger the threshold
+    Config.
+
+%%--------------------------------------------------------------------
+max_auth_tries_default(Config) ->
+    %% TODO: This test probably needs to use the ssh_trpt_test_lib to perform
+    %% multiple authentication in the same connection and it will be attempt
+    %% number 5 that will have success
+    Config.
 
 %%--------------------------------------------------------------------
 %% Internal functions ------------------------------------------------
