@@ -1186,7 +1186,11 @@ handle_event(info, {Proto, Sock, NewData}, StateName,
                          aead_data = <<>>,
                          encrypted_data_buffer = EncryptedDataRest},
 	    try
-		ssh_message:decode(set_kex_overload_prefix(DecryptedBytes,D2))
+                Msg = ssh_message:decode(set_kex_overload_prefix(DecryptedBytes,D2)),
+                %% TODO refactor the code so we don't end in the catch because of
+                %% errors in the event fun
+                ssh_event:message_received(Msg, D2),
+                Msg
 	    of
 		#ssh_msg_kexinit{}                   = Msg ->
 		    {keep_state, D2, [{next_event, internal, prepare_next_packet},

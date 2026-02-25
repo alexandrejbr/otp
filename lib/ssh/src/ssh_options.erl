@@ -68,6 +68,14 @@
                             }.
 
 %%%================================================================
+%%% Macros
+
+-define(EVENT_FUNS_DEFAULT, #{connect => fun(_,_) -> void end,
+                              disconnect => fun(_,_) -> void end,
+                              message_sent => fun(_,_) -> void end,
+                              message_received => fun(_,_) -> void end}).
+
+%%%================================================================
 %%%
 %%% Get an option
 %%%
@@ -819,6 +827,22 @@ default(common) ->
            #{default => fun(_) -> void end,
              chk => fun(V) -> check_function1(V) orelse
                                   check_function2(V) end,
+             class => user_option
+            },
+
+       event_funs =>
+           #{default => ?EVENT_FUNS_DEFAULT,
+             chk => fun(V0) when is_map(V0) ->
+                            V = maps:merge(?EVENT_FUNS_DEFAULT, V0),
+                            lists:all(fun({K, F}) ->
+                                              lists:member(K, [connect,
+                                                               disconnect,
+                                                               message_sent,
+                                                               message_received]) andalso
+                                                  check_function2(F)
+                                      end, maps:to_list(V));
+                       (_) -> false
+                    end,
              class => user_option
             },
 

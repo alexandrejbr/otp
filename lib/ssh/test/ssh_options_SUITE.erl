@@ -95,7 +95,9 @@
          daemon_replace_options_algs/1,
          daemon_replace_options_algs_connect/1,
          daemon_replace_options_algs_conf_file/1,
-         daemon_replace_options_not_found/1
+         daemon_replace_options_not_found/1,
+         event_funs_invalid/1,
+         event_funs_message_received/1
 	]).
 
 %%% Common test callbacks
@@ -172,7 +174,8 @@ all() ->
      daemon_replace_options_algs_connect,
      daemon_replace_options_algs_conf_file,
      daemon_replace_options_not_found,
-     {group, hardening_tests}
+     {group, hardening_tests},
+     {group, event_funs}
     ].
 
 groups() ->
@@ -188,7 +191,9 @@ groups() ->
 			   ]},
      {dir_options, [], [user_dir_option,
                         user_dir_fun_option,
-			system_dir_option]}
+			system_dir_option]},
+     {event_funs, [], [event_funs_invalid,
+                       event_funs_message_received]}
     ].
 
 
@@ -2266,6 +2271,66 @@ daemon_replace_options_not_found(_Config) ->
     %% which is {error, bad_daemon_ref}
     Error = ssh:daemon_info(self()),
     Error = ssh:daemon_replace_options(self(), []).
+
+%%--------------------------------------------------------------------
+%% Test the options validation for event_funs
+event_funs_invalid(Config) ->
+    UserDir = proplists:get_value(user_dir, Config),
+    SysDir = proplists:get_value(data_dir, Config),
+
+    {error, {eoptions, _}} =
+        ssh_test_lib:daemon([{system_dir, SysDir},
+                             {user_dir, UserDir},
+                             {password, "morot"},
+                             {event_funs, #{not_valid_option => server}}]),
+
+    {error, {eoptions, _}} =
+        ssh_test_lib:daemon([{system_dir, SysDir},
+                             {user_dir, UserDir},
+                             {password, "morot"},
+                             {event_funs, #{connect => fun(_) -> ok end}}]),
+
+    {Pid, Host, Port} = ssh_test_lib:daemon([{system_dir, SysDir},
+					     {user_dir, UserDir},
+					     {password, "morot"},
+					     {event_funs, #{}}]),
+    {error, {eoptions, _}} =
+	ssh:connect(Host, Port, [{silently_accept_hosts, true},
+                                 {user, "foo"},
+                                 {password, "morot"},
+                                 {user_dir, UserDir},
+                                 {user_interaction, false},
+                                 {event_funs, #{not_valid_option => client}}]),
+    ok.
+
+event_funs_message_received(Config) ->
+    UserDir = proplists:get_value(user_dir, Config),
+    SysDir = proplists:get_value(data_dir, Config),
+
+    Parent = self(),
+    MsgReceivedFun = fun(E,C) -> Parent ! {E,C} end,
+
+    {Pid, Host, Port} =
+        ssh_test_lib:daemon([{system_dir, SysDir},
+                             {user_dir, UserDir},
+                             {password, "morot"},
+                             {failfun, fun ssh_test_lib:failfun/2},
+                             {event_funs, #{message_received => MsgReceivedFun}}]),
+    ConnectionRef =
+	ssh_test_lib:connect(Host, Port, [{silently_accept_hosts, true},
+					  {user, "foo"},
+					  {password, "morot"},
+					  {user_dir, UserDir},
+					  {user_interaction, false}]),
+    foreach_message(fun({E,C}) ->
+                            ct:log("Event=~p Context=~p~n", [E,C])
+                    end, process_info(self(), message_queue_len)).
+
+foreach_message(Fun, {message_queue_len, 0}) ->
+    ok;
+foreach_message(Fun, {message_queue_len, N}) ->
+    receive Msg -> Fun(Msg) end,
+    foreach_message(Fun, process_info(self(), message_queue_len)).
 
 %%--------------------------------------------------------------------
 %% Internal functions ------------------------------------------------
