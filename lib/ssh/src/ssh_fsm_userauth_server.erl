@@ -179,7 +179,7 @@ connected_state(Reply, Ssh1, User, Method, D0) ->
                 %% Note: authenticated=true MUST NOT be sent
                 %% before send_msg!
                 ssh_params = Ssh#ssh{authenticated = true}},
-    connected_fun(User, Method, D),
+    ssh_event:connected(Method, D),
     D.
 
 set_alive_timeout(#data{ssh_params = #ssh{opts=Opts}}) ->
@@ -188,10 +188,6 @@ set_alive_timeout(#data{ssh_params = #ssh{opts=Opts}}) ->
 
 set_max_initial_idle_timeout(#data{ssh_params = #ssh{opts=Opts}}) ->
     {{timeout,max_initial_idle_time}, ?GET_OPT(max_initial_idle_time,Opts), none}.
-
-connected_fun(User, Method, #data{ssh_params = #ssh{peer = {_,Peer}}} = D) ->
-    ?CALL_FUN(connectfun,D)(User, Peer, Method).
-
 
 retry_fun(_, undefined, _) ->
     ok;
