@@ -171,10 +171,10 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 
 connected_state(Reply, Ssh1, User, Method, D0) ->
     D1 = #data{ssh_params=Ssh} =
-        ssh_connection_handler:send_msg(Reply, D0#data{ssh_params = Ssh1}),
+        ssh_connection_handler:send_msg(Reply, D0#data{ssh_params = Ssh1,
+                                                       auth_user = User}),
     ssh_connection_handler:handshake(ssh_connected, D1),
-    D = D1#data{auth_user=User,
-                %% Note: authenticated=true MUST NOT be sent
+    D = D1#data{%% Note: authenticated=true MUST NOT be sent
                 %% before send_msg!
                 ssh_params = Ssh#ssh{authenticated = true}},
     connected_fun(User, Method, D),
