@@ -177,7 +177,7 @@ connected_state(Reply, Ssh1, User, Method, D0) ->
     D = D1#data{%% Note: authenticated=true MUST NOT be sent
                 %% before send_msg!
                 ssh_params = Ssh#ssh{authenticated = true}},
-    connected_fun(User, Method, D),
+    ssh_event:connected(Method, D),
     D.
 
 set_alive_timeout(#data{ssh_params = #ssh{opts=Opts}}) ->
@@ -186,16 +186,6 @@ set_alive_timeout(#data{ssh_params = #ssh{opts=Opts}}) ->
 
 set_max_initial_idle_timeout(#data{ssh_params = #ssh{opts=Opts}}) ->
     {{timeout,max_initial_idle_time}, ?GET_OPT(max_initial_idle_time,Opts), none}.
-
-connected_fun(User, Method, #data{ssh_params = #ssh{peer = {_,Peer}}} = D) ->
-    Fun = ?GET_OPT(connectfun, (D#data.ssh_params)#ssh.opts),
-    ConnInfo = ssh_connection_handler:connection_info_server(D),
-    case erlang:fun_info(Fun, arity) of
-        {arity, 3} ->
-            Fun(User, Peer, Method);
-        {arity, 4} ->
-            Fun(User, Peer, Method, ConnInfo)
-    end.
 
 retry_fun(_, undefined, _) ->
     ok;

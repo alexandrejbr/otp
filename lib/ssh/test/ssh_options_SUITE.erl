@@ -2288,7 +2288,7 @@ event_funs_invalid(Config) ->
         ssh_test_lib:daemon([{system_dir, SysDir},
                              {user_dir, UserDir},
                              {password, "morot"},
-                             {event_funs, #{connect => fun(_) -> ok end}}]),
+                             {event_funs, #{connected => fun(_) -> ok end}}]),
 
     {Pid, Host, Port} = ssh_test_lib:daemon([{system_dir, SysDir},
 					     {user_dir, UserDir},
@@ -2309,19 +2309,25 @@ event_funs_message_received(Config) ->
 
     Parent = self(),
     MsgReceivedFun = fun(E,C) -> Parent ! {E,C} end,
-
+    ConnectFun = fun(User, _Peer, _Method, ConnInfo) ->
+                         S = try throw(bla) catch throw:bla:_S -> _S end,
+                         ct:log("User=~p S=~p~n", [User, S])
+                 end,
     {Pid, Host, Port} =
         ssh_test_lib:daemon([{system_dir, SysDir},
                              {user_dir, UserDir},
                              {password, "morot"},
                              {failfun, fun ssh_test_lib:failfun/2},
+                             {connectfun, ConnectFun},
                              {event_funs, #{message_received => MsgReceivedFun}}]),
     ConnectionRef =
-	ssh_test_lib:connect(Host, Port, [{silently_accept_hosts, true},
-					  {user, "foo"},
-					  {password, "morot"},
-					  {user_dir, UserDir},
-					  {user_interaction, false}]),
+	ssh_test_lib:connect(Host, Port,
+                             [{silently_accept_hosts, true},
+                              {user, "foo"},
+                              {password, "morot"},
+                              {user_dir, UserDir},
+                              {user_interaction, false},
+                              {event_funs, #{message_received => MsgReceivedFun}}]),
     foreach_message(fun({E,C}) ->
                             ct:log("Event=~p Context=~p~n", [E,C])
                     end, process_info(self(), message_queue_len)).

@@ -70,8 +70,8 @@
 %%%================================================================
 %%% Macros
 
--define(EVENT_FUNS_DEFAULT, #{connect => fun(_,_) -> void end,
-                              disconnect => fun(_,_) -> void end,
+-define(EVENT_FUNS_DEFAULT, #{connected => fun(_,_) -> void end,
+                              disconnected => fun(_,_) -> void end,
                               message_sent => fun(_,_) -> void end,
                               message_received => fun(_,_) -> void end}).
 
@@ -835,8 +835,8 @@ default(common) ->
              chk => fun(V0) when is_map(V0) ->
                             V = maps:merge(?EVENT_FUNS_DEFAULT, V0),
                             lists:all(fun({K, F}) ->
-                                              lists:member(K, [connect,
-                                                               disconnect,
+                                              lists:member(K, [connected,
+                                                               disconnected,
                                                                message_sent,
                                                                message_received]) andalso
                                                   check_function2(F)

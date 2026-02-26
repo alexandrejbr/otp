@@ -26,7 +26,9 @@
 -module(ssh_event).
 -moduledoc false.
 
--export([message_received/2]).
+-export([message_received/2, connected/2, disconnected/2]).
+
+-export([disconnectfun/1, connectfun/1]).
 
 -include("ssh.hrl").
 -include("ssh_connect.hrl").
@@ -36,17 +38,67 @@
 -include("ssh_fsm.hrl").
 
 message_received(Msg, D) ->
-    EventFuns = ?GET_OPT(event_funs, (D#data.ssh_params)#ssh.opts),
-    EventFun = maps:get(?FUNCTION_NAME, EventFuns),
-    ConnInfo = ssh_connection_handler:connection_info_server(D),
-    %% Keys = conn_info_keys_base() ++ [user_auth],
-    %% ConnInfo = fold_keys(Keys, fun conn_info/2, D),
-    Context = #{connection_ref => self(),
-                connection_info => ConnInfo,
-                msg_type => msg_type(Msg),
+    Context = #{msg_type => msg_type(Msg),
                 msg_type_name => element(1, Msg)
                },
-    EventFun(?FUNCTION_NAME, Context).
+    process_event(?FUNCTION_NAME, Context, D).
+
+connected(Method, D) ->
+    Context = #{user_auth => Method},
+    handle_legacy_fun(connectfun, ?FUNCTION_NAME, Context, D),
+    process_event(?FUNCTION_NAME, Context, D).
+
+disconnected(Context, D) ->
+    handle_legacy_fun(disconnectfun, ?FUNCTION_NAME, Context, D),
+    process_event(?FUNCTION_NAME, Context, D).
+
+process_event(Event, EventSpecificContext, D) ->
+    EventFuns = ?GET_OPT(event_funs, (D#data.ssh_params)#ssh.opts),
+    case maps:get(Event, EventFuns, undefined) of
+        undefined -> ok;
+        EventFun -> process_event(Event, EventSpecificContext, D, EventFun)
+    end.
+
+process_event(Event, EventSpecificContext, D, EventFun) ->
+    ConnInfo = ssh_connection_handler:connection_info_server(D),
+    Role = (D#data.ssh_params)#ssh.role,
+    Context = EventSpecificContext#{connection_ref => self(),
+                                    connection_info => ConnInfo,
+                                    role => Role},
+    EventFun(Event, Context).
+
+handle_legacy_fun(FunName, Event, Context, D) ->
+    LegacyFun = ?GET_OPT(FunName, (D#data.ssh_params)#ssh.opts),
+    EventFun = ?MODULE:FunName(LegacyFun),
+    process_event(Event, Context, D, EventFun).
+
+disconnectfun(Fun) ->
+    fun(disconnected, #{description := Desc}) ->
+            Fun(Desc)
+    end.
+
+connectfun(Fun) ->
+    Fun3 =
+        fun(connected, #{user_auth := Method, connection_info := ConnInfo}) ->
+                User = proplists:get_value(user, ConnInfo),
+                %% For connectFun this is how the peer is constructed
+            {_,Peer} = proplists:get_value(peer, ConnInfo),
+                Fun(User, Peer, Method)
+        end,
+    Fun4 =
+        fun(connected, #{user_auth := Method, connection_info := ConnInfo}) ->
+                User = proplists:get_value(user, ConnInfo),
+                %% For connectFun this is how the peer is constructed
+            {_,Peer} = proplists:get_value(peer, ConnInfo),
+                Fun(User, Peer, Method, ConnInfo)
+        end,
+    case erlang:fun_info(Fun, arity) of
+        {arity, 3} ->
+            Fun3;
+        {arity, 4} ->
+            Fun4
+    end.
+
 
 %%%================================================================
 %%%
