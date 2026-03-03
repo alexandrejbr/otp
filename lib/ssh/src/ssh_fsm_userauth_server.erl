@@ -94,6 +94,12 @@ handle_event(internal,
                              [set_alive_timeout(D), set_max_initial_idle_timeout(D),
                               {change_callback_module,ssh_connection_handler}
                              ]};
+			{auth_tries_exceeded, _, Ssh = #ssh{}} ->
+                            {Shutdown, D} = ?send_disconnect(
+                                ?SSH_DISCONNECT_PROTOCOL_ERROR,
+                                "Too many authentication failures", StateName,
+                                D0#data{ssh_params = Ssh}),
+                            {stop, Shutdown, D};
 			{not_authorized, {User, Reason}, {Reply, Ssh}} when Method == "keyboard-interactive" ->
 			    retry_fun(User, Reason, D1),
                             D = ssh_connection_handler:send_msg(Reply, D1#data{ssh_params = Ssh}),
