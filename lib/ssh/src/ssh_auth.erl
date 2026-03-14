@@ -435,9 +435,7 @@ handle_userauth_info_request(#ssh_msg_userauth_info_request{name = Name,
 handle_userauth_info_response(#ssh_msg_userauth_info_response{num_responses = 1,
 							      data = <<?UINT32(Sz), Password:Sz/binary>>},
 			      #ssh{opts = Opts,
-				   kb_tries_left = KbTriesLeft,
-				   user = User,
-				   userauth_supported_methods = Methods} = Ssh) ->
+				   user = User} = Ssh) ->
     SendOneEmpty =
 	(?GET_OPT(tstflg,Opts) == one_empty)
 	orelse 
@@ -459,10 +457,8 @@ handle_userauth_info_response(#ssh_msg_userauth_info_response{num_responses = 1,
 	     {#ssh_msg_userauth_success{}, Ssh1}};
 
 	{false,Ssh1} ->
-	    {not_authorized, {User, {error,"Bad user or password"}}, 
-	     {#ssh_msg_userauth_failure{authentications = Methods,
-                                        partial_success = false}, 
-              Ssh1#ssh{kb_tries_left = max(KbTriesLeft-1, 0)}}}
+            Method = "keyboard-interactive",
+            userauth_failure(User, Method, {error,"Bad user or password"}, Ssh1)
     end;
 
 handle_userauth_info_response({extra,#ssh_msg_userauth_info_response{}},
