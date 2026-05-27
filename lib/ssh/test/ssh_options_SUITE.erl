@@ -2256,7 +2256,7 @@ event_funs_message_received(Config) ->
 
     Parent = self(),
     MsgReceivedFun = fun(E,C) -> Parent ! {E,C} end,
-    ConnectFun = fun(User, _Peer, _Method, ConnInfo) ->
+    ConnectFun = fun(User, _Peer, _Method) ->
                          S = try throw(bla) catch throw:bla:_S -> _S end,
                          ct:log("User=~p S=~p~n", [User, S])
                  end,

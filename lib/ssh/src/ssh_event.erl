@@ -60,7 +60,7 @@ process_event(Event, EventSpecificContext, D) ->
     end.
 
 process_event(Event, EventSpecificContext, D, EventFun) ->
-    ConnInfo = ssh_connection_handler:connection_info_server(D),
+    ConnInfo = ssh_connection_handler:connection_info_internal(D),
     Role = (D#data.ssh_params)#ssh.role,
     Context = EventSpecificContext#{connection_ref => self(),
                                     connection_info => ConnInfo,

@@ -69,6 +69,7 @@
          retrieve/2,
 	 info/1, info/2,
 	 connection_info/2,
+         connection_info_internal/1,
 	 channel_info/3,
 	 adjust_window/3, close/2,
 	 disconnect/4,
@@ -308,6 +309,10 @@ connection_info(ConnectionHandler, Key) when is_atom(Key) ->
     end;
 connection_info(ConnectionHandler, Options) ->
     call(ConnectionHandler, {connection_info, Options}).
+
+%%--------------------------------------------------------------------
+connection_info_internal(D) when is_tuple(D) ->
+    fold_keys(conn_info_keys_base(), fun conn_info/2, D).
 
 %%--------------------------------------------------------------------
 -spec channel_info(connection_ref(),
@@ -1930,15 +1935,11 @@ counterpart_versions(NumVsn, StrVsn, #ssh{role = client} = Ssh) ->
 
 %%%----------------------------------------------------------------
 conn_info_keys() ->
-    [client_version,
-     server_version,
-     peer,
-     user,
-     sockname,
-     options,
-     algorithms,
-     channels
-    ].
+    conn_info_keys_base() ++ [channels, user_auth].
+
+conn_info_keys_base() ->
+    [client_version, server_version, peer, user, sockname, options, algorithms].
+
 
 conn_info(client_version, #data{ssh_params=S}) -> {S#ssh.c_vsn, S#ssh.c_version};
 conn_info(server_version, #data{ssh_params=S}) -> {S#ssh.s_vsn, S#ssh.s_version};
