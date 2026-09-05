@@ -134,6 +134,7 @@
          hash_equals/1,
          sign_verify/0,
          sign_verify/1,
+         mldsa_key_derivation/1,
          sign_verify_oqs/1,
          ec_key_padding/1,
          use_all_ec_sign_verify/1,
@@ -263,6 +264,7 @@ all() ->
      node_supports_cache,
      mod_pow,
      encapsulate,
+     mldsa_key_derivation,
      sign_verify_oqs,
      exor,
      rand_uniform,
@@ -1529,6 +1531,35 @@ encap_decap(Alg) ->
     {Secret, Encap} = crypto:encapsulate_key(Alg, Pub),
     Secret2 = crypto:decapsulate_key(Alg, Priv, Encap),
     {Secret2,Secret} = {Secret,Secret2},
+    ok.
+
+%%--------------------------------------------------------------------
+mldsa_key_derivation(_Config) ->
+    Algs = [mldsa44, mldsa65, mldsa87],
+    case Algs -- crypto:supports(public_keys) of
+        [] ->
+            Seed = list_to_binary(lists:seq(0, 31)),
+            [mldsa_key_derivation_do(Alg, Seed) || Alg <- Algs],
+            ok;
+        Unsupported ->
+            {skip, {unsupported_algorithms, Unsupported}}
+    end.
+
+mldsa_key_derivation_do(Alg, Seed) ->
+    Msg = <<"ML-DSA private key representation test">>,
+
+    {SeedPublic, {seed, Seed}} =
+        crypto:generate_key(Alg, [], {seed, Seed}),
+    SeedSignature = crypto:sign(Alg, none, Msg, {seed, Seed}),
+    true = crypto:verify(Alg, none, Msg, SeedSignature, SeedPublic),
+
+    {ExpandedPublic, ExpandedKey} = crypto:generate_key(Alg, []),
+    {ExpandedPublic, ExpandedKey} =
+        crypto:generate_key(Alg, [], ExpandedKey),
+    ExpandedSignature = crypto:sign(Alg, none, Msg,
+                                    {expandedkey, ExpandedKey}),
+    true = crypto:verify(Alg, none, Msg, ExpandedSignature,
+                         ExpandedPublic),
     ok.
 
 %%--------------------------------------------------------------------
