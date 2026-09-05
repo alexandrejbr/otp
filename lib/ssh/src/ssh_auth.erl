@@ -293,7 +293,8 @@ handle_userauth_request(#ssh_msg_userauth_request{user = User,
                                                   method = "publickey" = Method,
 						  data = <<?BYTE(?FALSE),
 							   ?UINT32(ALen), BAlg:ALen/binary,
-                                                           ?UINT32(KLen), KeyBlob:KLen/binary
+                                                           ?UINT32(KLen), KeyBlob:KLen/binary,
+                                                           _/binary
 							 >>
                                                  }, _SessionId, Ssh0) ->
     Ssh =
@@ -857,5 +858,3 @@ fmt_bool(<<?BYTE(Bool),_/binary>>) ->
                    end]);
 fmt_bool(<<>>) ->
     "".
-
-

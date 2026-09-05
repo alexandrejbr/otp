@@ -652,13 +652,13 @@ ssh2_pubkey_encode(#'RSAPublicKey'{modulus = N, publicExponent = E}) ->
 
 ssh2_pubkey_encode(#'ML-DSAPublicKey'{algorithm = mldsa44, key = Key})
   when byte_size(Key) == 1312 ->
-    <<?STRING(<<"ssh-mldsa-44">>), ?Estring(Key)>>;
+    <<?STRING(<<"ssh-mldsa-44">>), ?Ebinary(Key)>>;
 ssh2_pubkey_encode(#'ML-DSAPublicKey'{algorithm = mldsa65, key = Key})
   when byte_size(Key) == 1952 ->
-    <<?STRING(<<"ssh-mldsa-65">>), ?Estring(Key)>>;
+    <<?STRING(<<"ssh-mldsa-65">>), ?Ebinary(Key)>>;
 ssh2_pubkey_encode(#'ML-DSAPublicKey'{algorithm = mldsa87, key = Key})
   when byte_size(Key) == 2592 ->
-    <<?STRING(<<"ssh-mldsa-87">>), ?Estring(Key)>>;
+    <<?STRING(<<"ssh-mldsa-87">>), ?Ebinary(Key)>>;
 
 ssh2_pubkey_encode({Y,  #'Dss-Parms'{p = P, q = Q, g = G}}) ->
     <<?STRING(<<"ssh-dss">>), ?Empint(P), ?Empint(Q), ?Empint(G), ?Empint(Y)>>;
